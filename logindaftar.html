@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login Interaktif</title>
+<style>
+body{margin:0;padding:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#4facfe,#00f2fe);display:flex;justify-content:center;align-items:center;height:100vh;}
+.container{background:white;padding:40px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,0.2);width:100%;max-width:400px;position:relative;}
+
+/* Form common */
+form{display:none;flex-direction:column;transition:opacity 0.5s ease;}
+form.active{display:flex;opacity:1;}
+form input{padding:12px 15px;margin:10px 0;border:1px solid #ccc;border-radius:8px;transition:0.3s;}
+form input:focus{outline:none;border-color:#4facfe;}
+form button{padding:12px;margin-top:10px;border:none;border-radius:8px;background:#4facfe;color:white;font-weight:bold;cursor:pointer;transition:0.3s;}
+form button:hover{background:#00f2fe;}
+form a{margin-top:10px;font-size:0.9rem;color:#4facfe;text-align:center;cursor:pointer;transition:0.3s;}
+form a:hover{color:#00f2fe;}
+#error,#regError,#resetMsg{color:red;text-align:center;margin-top:5px;font-size:0.9rem;opacity:0;transition:opacity 0.5s ease;}
+#resetMsg{color:green;}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Login -->
+  <form id="loginForm" class="active">
+    <h2 style="text-align:center;margin-bottom:15px;color:#4facfe;">Login</h2>
+    <input type="text" id="loginUsername" placeholder="Username" required>
+    <input type="password" id="loginPassword" placeholder="Password" required>
+    <button type="submit">Login</button>
+    <div id="error"></div>
+    <a id="toRegister">Daftar Akun</a>
+    <a id="toReset">Lupa Password?</a>
+  </form>
+
+  <!-- Register -->
+  <form id="registerForm">
+    <h2 style="text-align:center;margin-bottom:15px;color:#4facfe;">Daftar</h2>
+    <input type="text" id="regUsername" placeholder="Username" required>
+    <input type="password" id="regPassword" placeholder="Password" required>
+    <button type="submit">Daftar</button>
+    <div id="regError"></div>
+    <a id="toLoginFromReg">Kembali ke Login</a>
+  </form>
+
+  <!-- Reset Password -->
+  <form id="resetForm">
+    <h2 style="text-align:center;margin-bottom:15px;color:#4facfe;">Reset Password</h2>
+    <input type="text" id="resetUsername" placeholder="Masukkan Username" required>
+    <input type="password" id="newPassword" placeholder="Password Baru" required>
+    <button type="submit">Reset Password</button>
+    <div id="resetMsg"></div>
+    <a id="toLoginFromReset">Kembali ke Login</a>
+  </form>
+
+  <!-- Dashboard -->
+  <form id="dashboard">
+    <h2 style="text-align:center;margin-bottom:15px;color:#4facfe;">Selamat Datang, <span id="userDisplay"></span></h2>
+    <button type="button" id="logoutBtn">Logout</button>
+  </form>
+</div>
+
+<script>
+// Form elements
+const loginForm=document.getElementById('loginForm');
+const registerForm=document.getElementById('registerForm');
+const resetForm=document.getElementById('resetForm');
+const dashboard=document.getElementById('dashboard');
+const errorMsg=document.getElementById('error');
+const regError=document.getElementById('regError');
+const resetMsg=document.getElementById('resetMsg');
+const userDisplay=document.getElementById('userDisplay');
+
+// Switch forms
+function showForm(formToShow){
+  [loginForm,registerForm,resetForm,dashboard].forEach(f=>f.classList.remove('active'));
+  formToShow.classList.add('active');
+  errorMsg.style.opacity=0; regError.style.opacity=0; resetMsg.style.opacity=0;
+}
+
+document.getElementById('toRegister').addEventListener('click',()=>showForm(registerForm));
+document.getElementById('toLoginFromReg').addEventListener('click',()=>showForm(loginForm));
+document.getElementById('toReset').addEventListener('click',()=>showForm(resetForm));
+document.getElementById('toLoginFromReset').addEventListener('click',()=>showForm(loginForm));
+
+// LocalStorage
+function getUsers(){return JSON.parse(localStorage.getItem('users')||'[]');}
+function saveUsers(users){localStorage.setItem('users',JSON.stringify(users));}
+function setCurrentUser(username){localStorage.setItem('currentUser',username);}
+function getCurrentUser(){return localStorage.getItem('currentUser');}
+function logoutUser(){localStorage.removeItem('currentUser');}
+
+// Register
+registerForm.addEventListener('submit',e=>{
+  e.preventDefault();
+  const username=document.getElementById('regUsername').value.trim();
+  const password=document.getElementById('regPassword').value.trim();
+  let users=getUsers();
+  if(users.find(u=>u.username===username)){regError.innerText="Username sudah digunakan!"; regError.style.opacity=1; return;}
+  users.push({username,password});
+  saveUsers(users);
+  alert("Pendaftaran berhasil! Silakan login.");
+  showForm(loginForm);
+});
+
+// Login
+loginForm.addEventListener('submit',e=>{
+  e.preventDefault();
+  const username=document.getElementById('loginUsername').value.trim();
+  const password=document.getElementById('loginPassword').value.trim();
+  let users=getUsers();
+  const user=users.find(u=>u.username===username && u.password===password);
+  if(user){
+    setCurrentUser(username);
+    userDisplay.innerText=username;
+    showForm(dashboard);
+  } else{
+    errorMsg.innerText="Username atau Password salah!"; errorMsg.style.opacity=1;
+  }
+});
+
+// Logout
+document.getElementById('logoutBtn').addEventListener('click',()=>{
+  logoutUser();
+  showForm(loginForm);
+});
+
+// Reset Password
+resetForm.addEventListener('submit',e=>{
+  e.preventDefault();
+  const username=document.getElementById('resetUsername').value.trim();
+  const newPassword=document.getElementById('newPassword').value.trim();
+  let users=getUsers();
+  const userIndex=users.findIndex(u=>u.username===username);
+  if(userIndex>=0){
+    users[userIndex].password=newPassword;
+    saveUsers(users);
+    resetMsg.style.color='green';
+    resetMsg.innerText="Password berhasil diubah!";
+    resetMsg.style.opacity=1;
+  } else{
+    resetMsg.style.color='red';
+    resetMsg.innerText="Username tidak ditemukan!";
+    resetMsg.style.opacity=1;
+  }
+});
+
+// Auto-login
+window.addEventListener('load',()=>{
+  const current=getCurrentUser();
+  if(current){
+    userDisplay.innerText=current;
+    showForm(dashboard);
+  }
+});
+</script>
+</body>
+</html>
